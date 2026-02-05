@@ -11,7 +11,7 @@ model User {
   id          String   @id @default(cuid())
   email       String   @unique
   phone       String?  @unique
-  password    String?
+  password    String
   firstName   String
   lastName    String
   avatar      String?
@@ -37,6 +37,8 @@ model User {
   notifications Notification[]
   otpCodes OtpCode[]
 
+  @@index([email])
+  @@index([phone])
   @@map("users")
 }
 
@@ -85,23 +87,24 @@ model OtpCode {
 }
 
 model Budget {
-  id          String     @id @default(cuid())
+  id          String          @id @default(cuid())
   name        String
   description String?
-  amount      Float
+  amount      Decimal
   startDate   DateTime
   endDate     DateTime?
-  isRecurring Boolean    @default(false)
-  recurrence  String?    // weekly, bi-weekly, monthly
-  isActive    Boolean    @default(true)
+  isRecurring Boolean         @default(false)
+  recurrence  BudgetRecurrence?
+  isActive    Boolean         @default(true)
   createdBy   String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   // Relations
   creator User @relation(fields: [createdBy], references: [id])
   receipts Receipt[]
 
+  @@index([createdBy])
   @@map("budgets")
 }
 
@@ -126,7 +129,7 @@ model Receipt {
   budgetId      String?
   storeName     String?
   storeNameZh   String?
-  totalAmount   Float
+  totalAmount   Decimal
   currency      String        @default("SGD")
   receiptNumber String?
   purchaseDate  DateTime
@@ -142,18 +145,20 @@ model Receipt {
   budget Budget? @relation(fields: [budgetId], references: [id])
   items ReceiptItem[]
 
+  @@index([userId])
+  @@index([budgetId])
   @@map("receipts")
 }
 
 model ReceiptItem {
-  id           String  @id @default(cuid())
+  id           String   @id @default(cuid())
   receiptId    String
-  categoryId  String
+  categoryId   String
   name         String
   nameZh       String?
-  quantity     Float
-  unitPrice    Float
-  totalPrice   Float
+  quantity     Decimal
+  unitPrice    Decimal
+  totalPrice   Decimal
   category     String?
   ocrConfidence Float?
   createdAt    DateTime @default(now())
@@ -163,6 +168,8 @@ model ReceiptItem {
   receipt Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
   categoryRelation Category @relation(fields: [categoryId], references: [id])
 
+  @@index([receiptId])
+  @@index([categoryId])
   @@map("receipt_items")
 }
 
@@ -206,9 +213,16 @@ enum OtpType {
 
 enum ReceiptStatus {
   PENDING
+  IN_PROGRESS
   PROCESSING
   COMPLETED
   FAILED
+}
+
+enum BudgetRecurrence {
+  WEEKLY
+  BI_WEEKLY
+  MONTHLY
 }
 
 enum NotificationType {
