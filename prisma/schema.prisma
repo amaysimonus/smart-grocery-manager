@@ -33,6 +33,7 @@ model User {
   oauthProviders OAuthProvider[]
   sessions Session[]
   budgets Budget[]
+  assignedBudgets BudgetAssignment[]
   receipts Receipt[]
   notifications Notification[]
   otpCodes OtpCode[]
@@ -102,10 +103,26 @@ model Budget {
 
   // Relations
   creator User @relation(fields: [createdBy], references: [id])
+  assignments BudgetAssignment[]
   receipts Receipt[]
 
   @@index([createdBy])
   @@map("budgets")
+}
+
+model BudgetAssignment {
+  id        String   @id @default(cuid())
+  budgetId  String
+  userId    String
+  assignedBy String
+  createdAt DateTime @default(now())
+
+  // Relations
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetId, userId])
+  @@map("budget_assignments")
 }
 
 model Category {

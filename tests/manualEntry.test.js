@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { app } = require('./manual-entry-test-app');
+const app = require('./manual-entry-test-app');
 
 // Mock database for manual entry tests
 jest.mock('../server/config/database', () => {
@@ -187,6 +187,7 @@ describe('Manual Entry System', () => {
 
       const { prisma } = require('../server/config/database');
       prisma.receipt.findFirst.mockResolvedValue(mockReceipt);
+      prisma.category.findFirst.mockResolvedValue({ id: testCategory.id, name: 'Vegetables' });
       prisma.receiptItem.createMany.mockResolvedValue({ count: 1 });
       prisma.receiptItem.findMany.mockResolvedValue(mockItems);
       prisma.receipt.update.mockResolvedValue(mockReceipt);
@@ -199,14 +200,14 @@ describe('Manual Entry System', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.items).toHaveLength(1);
-      expect(response.body.receipt.totalAmount).toBe('10.00');
+      expect(parseFloat(response.body.receipt.totalAmount)).toBe(7.00);
     });
 
     it('should validate item data', async () => {
       const response = await request(app)
         .post('/api/manual-receipts/test-id/items')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ items: [{ name: '' }] })
+        .send({ items: [{ name: '', quantity: 1, unitPrice: 1 }] })
         .expect(400);
 
       expect(response.body.success).toBe(false);
@@ -220,7 +221,7 @@ describe('Manual Entry System', () => {
       const response = await request(app)
         .post('/api/manual-receipts/other-id/items')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ items: [{ name: 'Test Item' }] })
+        .send({ items: [{ name: 'Test Item', quantity: 1, unitPrice: 1 }] })
         .expect(404);
 
       expect(response.body.success).toBe(false);

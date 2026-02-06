@@ -64,7 +64,7 @@ jest.mock('../server/services/ocrService', () => ({
 }));
 
 jest.mock('../server/middleware/auth', () => ({
-  auth: (req, res, next) => {
+  authMiddleware: (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
@@ -74,7 +74,8 @@ jest.mock('../server/middleware/auth', () => ({
     }
     req.user = { id: 'test-user-id' };
     next();
-  }
+  },
+  roleMiddleware: (allowedRoles) => (req, res, next) => next()
 }));
 
 // Mock OAuth controller to prevent route loading issues

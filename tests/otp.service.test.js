@@ -18,18 +18,22 @@ jest.mock('../server/config/database', () => ({
     },
     $connect: jest.fn(),
     $disconnect: jest.fn(),
-    $transaction: jest.fn((callback) => callback({
-      otpCode: {
-        create: jest.fn(),
-        findFirst: jest.fn(),
-        update: jest.fn(),
-        updateMany: jest.fn(),
-      },
-      user: {
-        findUnique: jest.fn(),
-        update: jest.fn(),
-      },
-    })),
+    $transaction: jest.fn((callback) => {
+      const tx = {
+        otpCode: {
+          create: jest.fn(),
+          findFirst: jest.fn(),
+          update: jest.fn(),
+          updateMany: jest.fn(),
+          count: jest.fn(),
+        },
+        user: {
+          findUnique: jest.fn(),
+          update: jest.fn(),
+        },
+      };
+      return callback(tx);
+    }),
   },
 }));
 
@@ -73,11 +77,16 @@ describe('OTP Service', () => {
         expiresAt: new Date(),
       };
 
+      const mockTx = {
+        otpCode: {
+          updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+          create: jest.fn().mockResolvedValue(mockOtp),
+        }
+      };
+
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       mockPrisma.$transaction.mockImplementation(async (callback) => {
-        mockPrisma.otpCode.updateMany.mockResolvedValue({ count: 0 });
-        mockPrisma.otpCode.create.mockResolvedValue(mockOtp);
-        return callback(mockPrisma);
+        return callback(mockTx);
       });
 
       const result = await otpService.createOtpCode({
@@ -89,8 +98,7 @@ describe('OTP Service', () => {
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { email: 'test@example.com' }
       });
-    });
-  });
+      expect(mockTx.otpCode.create).toHaveBeenCalled();
     });
 
     it('should throw error for missing email and phone', async () => {
@@ -141,17 +149,18 @@ describe('OTP Service', () => {
         user: mockUser,
       };
 
+      const mockTx = {
+        otpCode: {
+          findFirst: jest.fn().mockResolvedValue(mockOtp),
+          update: jest.fn().mockResolvedValue({}),
+        },
+        user: {
+          update: jest.fn().mockResolvedValue({ ...mockUser, emailVerified: true }),
+        },
+      };
+
       mockPrisma.$transaction.mockImplementation(async (callback) => {
-        const tx = {
-          otpCode: {
-            findFirst: jest.fn().mockResolvedValue(mockOtp),
-            update: jest.fn().mockResolvedValue({}),
-          },
-          user: {
-            update: jest.fn().mockResolvedValue({ ...mockUser, emailVerified: true }),
-          },
-        };
-        return callback(tx);
+        return callback(mockTx);
       });
 
       const result = await otpService.verifyOtpCode({
@@ -163,14 +172,22 @@ describe('OTP Service', () => {
       expect(result.success).toBe(true);
       expect(result.otp).toEqual(mockOtp);
       expect(result.user).toEqual(mockUser);
-      expect(mockPrisma.otpCode.update).toHaveBeenCalledWith({
+      expect(mockTx.otpCode.update).toHaveBeenCalledWith({
         where: { id: 'otp123' },
         data: { used: true },
       });
     });
 
     it('should throw error for invalid OTP', async () => {
-      mockPrisma.otpCode.findFirst.mockResolvedValue(null);
+      const mockTx = {
+        otpCode: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        }
+      };
+
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        return callback(mockTx);
+      });
 
       await expect(
         otpService.verifyOtpCode({

@@ -62,6 +62,21 @@ router.get(
 );
 
 router.post(
+  '/:id/assign',
+  BudgetController.budgetRateLimit,
+  roleMiddleware(['MASTER', 'ADMIN']),
+  BudgetController.validateAssignment,
+  budgetController.assignBudget
+);
+
+router.delete(
+  '/:id/assign/:userId',
+  BudgetController.budgetRateLimit,
+  roleMiddleware(['MASTER', 'ADMIN']),
+  budgetController.unassignBudget
+);
+
+router.post(
   '/:id/rollover',
   BudgetController.budgetRateLimit,
   roleMiddleware(['MASTER', 'ADMIN']),

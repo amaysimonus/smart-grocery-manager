@@ -131,6 +131,14 @@ class BudgetController {
       .withMessage('Start date must be a valid date')
   ];
 
+  static validateAssignment = [
+    body('userId')
+      .notEmpty()
+      .withMessage('User ID is required')
+      .isString()
+      .withMessage('User ID must be a string')
+  ];
+
   static validateQuery = [
     query('page')
       .optional()
@@ -223,6 +231,7 @@ class BudgetController {
         search: req.query.search,
         isActive: req.query.isActive !== undefined ? req.query.isActive === 'true' : undefined,
         createdBy: req.user.role === 'MASTER' || req.user.role === 'ADMIN' ? undefined : req.user.id,
+        userId: req.user.id, // For assigned budgets
         sortBy: req.query.sortBy || 'createdAt',
         sortOrder: req.query.sortOrder || 'desc'
       };
@@ -389,6 +398,74 @@ class BudgetController {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve budget spending'
+      });
+    }
+  };
+
+  /**
+   * Assign budget to user
+   */
+  assignBudget = async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          errors: errors.array()
+        });
+      }
+
+      // Only admins/masters can assign budgets
+      const budget = await this.budgetService.getBudgetById(req.params.id);
+      if (req.user.role !== 'MASTER' && req.user.role !== 'ADMIN' && budget.createdBy !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied to assign this budget'
+        });
+      }
+
+      const assignment = await this.budgetService.assignBudget(req.params.id, req.body.userId, req.user.id);
+
+      res.status(201).json({
+        success: true,
+        message: 'Budget assigned successfully',
+        data: assignment
+      });
+    } catch (error) {
+      console.error('Assign budget error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * Unassign budget from user
+   */
+  unassignBudget = async (req, res) => {
+    try {
+      // Only admins/masters can unassign budgets
+      const budget = await this.budgetService.getBudgetById(req.params.id);
+      if (req.user.role !== 'MASTER' && req.user.role !== 'ADMIN' && budget.createdBy !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied to unassign this budget'
+        });
+      }
+
+      const result = await this.budgetService.unassignBudget(req.params.id, req.params.userId);
+
+      res.json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      console.error('Unassign budget error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message
       });
     }
   };

@@ -9,7 +9,7 @@ const {
   unlinkOAuthProvider,
   getLinkedProviders
 } = require('../controllers/oauthController');
-const auth = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -63,13 +63,13 @@ router.get('/apple/callback',
 router.get('/failure', oauthFailure);
 
 // OAuth provider management (requires authentication)
-router.get('/providers', auth, getLinkedProviders);
+router.get('/providers', authMiddleware, getLinkedProviders);
 
-router.post('/link/:provider', auth, linkOAuthProvider);
-router.delete('/unlink/:provider', auth, unlinkOAuthProvider);
+router.post('/link/:provider', authMiddleware, linkOAuthProvider);
+router.delete('/unlink/:provider', authMiddleware, unlinkOAuthProvider);
 
 // OAuth linking routes (for existing users)
-router.get('/link/google', auth, (req, res, next) => {
+router.get('/link/google', authMiddleware, (req, res, next) => {
   const state = generateState();
   req.session.oauthState = state;
   req.session.linkAccount = true;
@@ -80,7 +80,7 @@ router.get('/link/google', auth, (req, res, next) => {
   })(req, res, next);
 });
 
-router.get('/link/apple', auth, (req, res, next) => {
+router.get('/link/apple', authMiddleware, (req, res, next) => {
   const state = generateState();
   req.session.oauthState = state;
   req.session.linkAccount = true;

@@ -2,9 +2,7 @@ const { body, query, validationResult } = require('express-validator');
 const otpService = require('../services/otpService');
 const emailService = require('../services/emailService');
 const smsService = require('../services/smsService');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const { prisma } = require('../config/database');
 
 class OtpController {
   /**

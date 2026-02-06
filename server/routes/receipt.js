@@ -1,5 +1,5 @@
 const express = require('express');
-const { auth } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 const { 
   upload, 
   receiptController, 
@@ -13,7 +13,7 @@ const router = express.Router();
 
 // Upload receipt image and start OCR processing
 router.post('/upload', 
-  auth,
+  authMiddleware,
   upload.single('receipt'),
   handleMulterErrors,
   validateReceiptUpload,
@@ -22,33 +22,33 @@ router.post('/upload',
 
 // Process OCR for existing receipt
 router.post('/process',
-  auth,
+  authMiddleware,
   validateReceiptProcess,
   receiptController.processReceiptOCR
 );
 
 // List receipts with pagination
 router.get('/', 
-  auth,
+  authMiddleware,
   receiptController.listReceipts
 );
 
 // Get single receipt details
 router.get('/:id', 
-  auth,
+  authMiddleware,
   receiptController.getReceipt
 );
 
 // Update receipt with manual corrections
 router.put('/:id',
-  auth,
+  authMiddleware,
   validateReceiptUpdate,
   receiptController.updateReceipt
 );
 
 // Delete receipt
 router.delete('/:id',
-  auth,
+  authMiddleware,
   receiptController.deleteReceipt
 );
 
