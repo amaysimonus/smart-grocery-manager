@@ -4,26 +4,14 @@ const { PrismaClient } = require('@prisma/client');
 let prisma;
 
 try {
-  if (process.env.NODE_ENV === 'test') {
-    // Use in-memory SQLite for tests
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL || 'file:./test.db',
-        },
+  prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL || 'file:./dev.db',
       },
-      log: ['error'],
-    });
-  } else {
-    prisma = new PrismaClient({
-      log: ['query', 'error', 'warn'],
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL,
-        },
-      },
-    });
-  }
+    },
+    log: process.env.NODE_ENV === 'test' ? ['error'] : ['query', 'error', 'warn'],
+  });
 } catch (error) {
   console.error('Failed to initialize Prisma client:', error);
   prisma = null;

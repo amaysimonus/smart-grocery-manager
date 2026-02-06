@@ -217,6 +217,7 @@ enum ReceiptStatus {
   PROCESSING
   COMPLETED
   FAILED
+  MANUAL
 }
 
 enum BudgetRecurrence {
