@@ -45,4 +45,4 @@ const roleMiddleware = (allowedRoles) => {
   };
 };
 
-module.exports = { authMiddleware, roleMiddleware };
+module.exports = { authenticate: auth, authMiddleware, roleMiddleware };
