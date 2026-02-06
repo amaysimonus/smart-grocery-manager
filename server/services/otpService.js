@@ -13,8 +13,7 @@ class OtpService {
    * @returns {string} 6-digit OTP code
    */
   generateOtpCode() {
-    const buffer = crypto.randomBytes(3);
-    const otp = buffer.readUIntBE(0, 3) % 1000000;
+    const otp = crypto.randomInt(0, 1000000);
     return otp.toString().padStart(6, '0');
   }
 
@@ -37,6 +36,9 @@ class OtpService {
       throw new Error('Invalid OTP type');
     }
 
+    // Validate user existence and verification status
+    await this.validateUserForOtp({ email, phone, type });
+
     // Check rate limiting
     await this.checkRateLimit(email, phone);
 
@@ -44,19 +46,32 @@ class OtpService {
     const code = this.generateOtpCode();
     const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    // Create OTP record
-    const otpCode = await prisma.otpCode.create({
-      data: {
-        email,
-        phone,
-        code,
-        type,
-        expiresAt,
-        userId,
-      },
+    // Create OTP record with transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Invalidate existing unused OTPs of same type for this email/phone
+      await tx.otpCode.updateMany({
+        where: {
+          OR: [{ email }, { phone }],
+          type,
+          used: false,
+        },
+        data: { used: true },
+      });
+
+      // Create new OTP record
+      return tx.otpCode.create({
+        data: {
+          email,
+          phone,
+          code,
+          type,
+          expiresAt,
+          userId,
+        },
+      });
     });
 
-    return otpCode;
+    return result;
   }
 
   /**
@@ -77,55 +92,60 @@ class OtpService {
       throw new Error('Code and type are required');
     }
 
-    // Find valid OTP
-    const otpCode = await prisma.otpCode.findFirst({
-      where: {
-        email,
-        phone,
-        code,
-        type,
-        used: false,
-        expiresAt: {
-          gt: new Date(),
+    // Use transaction to prevent race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      // Find and lock valid OTP
+      const otpCode = await tx.otpCode.findFirst({
+        where: {
+          email,
+          phone,
+          code,
+          type,
+          used: false,
+          expiresAt: {
+            gt: new Date(),
+          },
         },
-      },
-      include: {
-        user: true,
-      },
-    });
+        include: {
+          user: true,
+        },
+      });
 
-    if (!otpCode) {
-      throw new Error('Invalid or expired OTP code');
-    }
-
-    // Mark OTP as used
-    await prisma.otpCode.update({
-      where: { id: otpCode.id },
-      data: { used: true },
-    });
-
-    // Update user verification status
-    if (otpCode.user) {
-      const updateData = {};
-      if (type === 'EMAIL_VERIFICATION') {
-        updateData.emailVerified = true;
-      } else if (type === 'PHONE_VERIFICATION') {
-        updateData.phoneVerified = true;
+      if (!otpCode) {
+        throw new Error('Invalid or expired OTP code');
       }
 
-      if (Object.keys(updateData).length > 0) {
-        await prisma.user.update({
-          where: { id: otpCode.userId },
-          data: updateData,
-        });
-      }
-    }
+      // Mark OTP as used immediately to prevent race conditions
+      await tx.otpCode.update({
+        where: { id: otpCode.id },
+        data: { used: true },
+      });
 
-    return {
-      success: true,
-      otp: otpCode,
-      user: otpCode.user,
-    };
+      // Update user verification status if user exists
+      if (otpCode.user) {
+        const updateData = {};
+        if (type === 'EMAIL_VERIFICATION') {
+          updateData.emailVerified = true;
+        } else if (type === 'PHONE_VERIFICATION') {
+          updateData.phoneVerified = true;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await tx.user.update({
+            where: { id: otpCode.userId },
+            data: updateData,
+          });
+        }
+      }
+
+      return {
+        success: true,
+        otp: otpCode,
+        user: otpCode.user,
+      };
+    });
+
+    return result;
   }
 
   /**
@@ -225,6 +245,46 @@ class OtpService {
 
     // Create new OTP
     return this.createOtpCode({ email, phone, type });
+  }
+
+  /**
+   * Validate user existence and verification status for OTP
+   * @param {Object} userData - User data
+   * @param {string} userData.email - Email address (optional)
+   * @param {string} userData.phone - Phone number (optional)
+   * @param {string} userData.type - OTP type
+   * @returns {Promise<void>}
+   */
+  async validateUserForOtp({ email, phone, type }) {
+    // For EMAIL_VERIFICATION and PHONE_VERIFICATION, user must exist
+    if (type === 'EMAIL_VERIFICATION' || type === 'PHONE_VERIFICATION') {
+      const user = email 
+        ? await prisma.user.findUnique({ where: { email } })
+        : await prisma.user.findUnique({ where: { phone } });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Check if already verified
+      if (type === 'EMAIL_VERIFICATION' && user.emailVerified) {
+        throw new Error('Email is already verified');
+      }
+      if (type === 'PHONE_VERIFICATION' && user.phoneVerified) {
+        throw new Error('Phone is already verified');
+      }
+    }
+
+    // For PASSWORD_RESET and LOGIN, user must exist
+    if (type === 'PASSWORD_RESET' || type === 'LOGIN') {
+      const user = email 
+        ? await prisma.user.findUnique({ where: { email } })
+        : await prisma.user.findUnique({ where: { phone } });
+
+      if (!user) {
+        throw new Error('No account found with this email or phone');
+      }
+    }
   }
 
   /**

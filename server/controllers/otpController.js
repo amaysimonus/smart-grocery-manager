@@ -24,27 +24,20 @@ class OtpController {
 
       const { email, phone, type } = req.body;
 
-      // Find user if available
-      let user = null;
-      if (email) {
-        user = await prisma.user.findUnique({
-          where: { email },
-        });
-      } else if (phone) {
-        user = await prisma.user.findUnique({
-          where: { phone },
-        });
-      }
-
-      // Create OTP
+      // Create OTP - service handles user validation
       const otpCode = await otpService.createOtpCode({
         email,
         phone,
         type,
-        userId: user?.id,
       });
 
-      // Send OTP via email or SMS
+      // Get user for sending OTP (service already validated existence)
+      const user = email 
+        ? await prisma.user.findUnique({ where: { email } })
+        : await prisma.user.findUnique({ where: { phone } });
+
+      // Send OTP via email or SMS with proper error handling
+      let sendSuccessful = false;
       if (email && user) {
         try {
           await emailService.sendOtpEmail({
@@ -54,9 +47,10 @@ class OtpController {
             language: user.language || 'en',
             firstName: user.firstName,
           });
+          sendSuccessful = true;
         } catch (emailError) {
           console.error('Failed to send OTP email:', emailError);
-          // Don't fail the request if email fails, but log it
+          throw new Error('Failed to send OTP via email. Please try again.');
         }
       } else if (phone && user) {
         try {
@@ -67,19 +61,21 @@ class OtpController {
             language: user.language || 'en',
             firstName: user.firstName,
           });
+          sendSuccessful = true;
         } catch (smsError) {
           console.error('Failed to send OTP SMS:', smsError);
-          // Don't fail the request if SMS fails, but log it
+          throw new Error('Failed to send OTP via SMS. Please try again.');
         }
+      }
+
+      if (!sendSuccessful && user) {
+        throw new Error('Failed to send OTP. Please try again.');
       }
 
       res.status(200).json({
         success: true,
         message: 'OTP sent successfully',
         otpId: otpCode.id,
-        // In production, don't return the actual OTP code
-        // For development/testing, we can include it
-        ...(process.env.NODE_ENV === 'development' && { otpCode: otpCode.code }),
       });
     } catch (error) {
       console.error('Request OTP error:', error);
@@ -161,26 +157,20 @@ class OtpController {
 
       const { email, phone, type } = req.body;
 
-      // Find user if available
-      let user = null;
-      if (email) {
-        user = await prisma.user.findUnique({
-          where: { email },
-        });
-      } else if (phone) {
-        user = await prisma.user.findUnique({
-          where: { phone },
-        });
-      }
-
-      // Resend OTP
+      // Resend OTP - service handles validation
       const otpCode = await otpService.resendOtp({
         email,
         phone,
         type,
       });
 
-      // Send OTP via email or SMS
+      // Get user for sending OTP
+      const user = email 
+        ? await prisma.user.findUnique({ where: { email } })
+        : await prisma.user.findUnique({ where: { phone } });
+
+      // Send OTP via email or SMS with proper error handling
+      let sendSuccessful = false;
       if (email && user) {
         try {
           await emailService.sendOtpEmail({
@@ -190,8 +180,10 @@ class OtpController {
             language: user.language || 'en',
             firstName: user.firstName,
           });
+          sendSuccessful = true;
         } catch (emailError) {
           console.error('Failed to resend OTP email:', emailError);
+          throw new Error('Failed to resend OTP via email. Please try again.');
         }
       } else if (phone && user) {
         try {
@@ -202,16 +194,21 @@ class OtpController {
             language: user.language || 'en',
             firstName: user.firstName,
           });
+          sendSuccessful = true;
         } catch (smsError) {
           console.error('Failed to resend OTP SMS:', smsError);
+          throw new Error('Failed to resend OTP via SMS. Please try again.');
         }
+      }
+
+      if (!sendSuccessful && user) {
+        throw new Error('Failed to resend OTP. Please try again.');
       }
 
       res.status(200).json({
         success: true,
         message: 'OTP resent successfully',
         otpId: otpCode.id,
-        ...(process.env.NODE_ENV === 'development' && { otpCode: otpCode.code }),
       });
     } catch (error) {
       console.error('Resend OTP error:', error);
@@ -354,4 +351,14 @@ class OtpController {
   }
 }
 
-module.exports = new OtpController();
+const otpController = new OtpController();
+
+module.exports = {
+  requestOtp: otpController.requestOtp.bind(otpController),
+  verifyOtp: otpController.verifyOtp.bind(otpController),
+  resendOtp: otpController.resendOtp.bind(otpController),
+  getOtpStatus: otpController.getOtpStatus.bind(otpController),
+  validateOtpRequest: OtpController.validateOtpRequest.bind(OtpController),
+  validateOtpVerification: OtpController.validateOtpVerification.bind(OtpController),
+  validateOtpStatus: OtpController.validateOtpStatus.bind(OtpController),
+};

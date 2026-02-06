@@ -1,11 +1,10 @@
 const express = require('express');
-const otpController = require('../controllers/otpController');
+const { requestOtp, verifyOtp, resendOtp, getOtpStatus, validateOtpRequest, validateOtpVerification, validateOtpStatus } = require('../controllers/otpController');
 const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 
-// Import validation functions directly
-const { body, query } = require('express-validator');
+
 
 // Rate limiting for OTP endpoints
 const otpRateLimit = rateLimit({
@@ -35,82 +34,7 @@ const otpRequestLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// Validation functions
-const validateOtpRequest = () => {
-  return [
-    body('type')
-      .isIn(['EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET', 'LOGIN'])
-      .withMessage('Invalid OTP type'),
-    body('email')
-      .optional()
-      .isEmail()
-      .normalizeEmail()
-      .withMessage('Valid email is required'),
-    body('phone')
-      .optional()
-      .matches(/^\+[1-9]\d{1,14}$/)
-      .withMessage('Valid phone number in international format is required (+XX... )'),
-    // Either email or phone must be provided
-    body().custom((value, { req }) => {
-      if (!req.body.email && !req.body.phone) {
-        throw new Error('Either email or phone number is required');
-      }
-      return true;
-    }),
-  ];
-};
 
-const validateOtpVerification = () => {
-  return [
-    body('type')
-      .isIn(['EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET', 'LOGIN'])
-      .withMessage('Invalid OTP type'),
-    body('code')
-      .isLength({ min: 6, max: 6 })
-      .isNumeric()
-      .withMessage('OTP code must be 6 digits'),
-    body('email')
-      .optional()
-      .isEmail()
-      .normalizeEmail()
-      .withMessage('Valid email is required'),
-    body('phone')
-      .optional()
-      .matches(/^\+[1-9]\d{1,14}$/)
-      .withMessage('Valid phone number in international format is required (+XX...)'),
-    // Either email or phone must be provided
-    body().custom((value, { req }) => {
-      if (!req.body.email && !req.body.phone) {
-        throw new Error('Either email or phone number is required');
-      }
-      return true;
-    }),
-  ];
-};
-
-const validateOtpStatus = () => {
-  return [
-    query('type')
-      .isIn(['EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET', 'LOGIN'])
-      .withMessage('Invalid OTP type'),
-    query('email')
-      .optional()
-      .isEmail()
-      .normalizeEmail()
-      .withMessage('Valid email is required'),
-    query('phone')
-      .optional()
-      .matches(/^\+[1-9]\d{1,14}$/)
-      .withMessage('Valid phone number in international format is required (+XX...)'),
-    // Either email or phone must be provided
-    query().custom((value, { req }) => {
-      if (!req.query.email && !req.query.phone) {
-        throw new Error('Either email or phone number is required');
-      }
-      return true;
-    }),
-  ];
-};
 
 /**
  * @route   POST /otp/request
@@ -122,7 +46,7 @@ router.post(
   otpRateLimit,
   otpRequestLimit,
   validateOtpRequest(),
-  otpController.requestOtp
+  requestOtp
 );
 
 /**
@@ -134,7 +58,7 @@ router.post(
   '/verify',
   otpRateLimit,
   validateOtpVerification(),
-  otpController.verifyOtp
+  verifyOtp
 );
 
 /**
@@ -147,7 +71,7 @@ router.post(
   otpRateLimit,
   otpRequestLimit,
   validateOtpRequest(),
-  otpController.resendOtp
+  resendOtp
 );
 
 /**
@@ -159,7 +83,7 @@ router.get(
   '/status',
   otpRateLimit,
   validateOtpStatus(),
-  otpController.getOtpStatus
+  getOtpStatus
 );
 
 module.exports = router;

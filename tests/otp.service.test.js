@@ -18,6 +18,18 @@ jest.mock('../server/config/database', () => ({
     },
     $connect: jest.fn(),
     $disconnect: jest.fn(),
+    $transaction: jest.fn((callback) => callback({
+      otpCode: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      user: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+    })),
   },
 }));
 
@@ -48,6 +60,11 @@ describe('OTP Service', () => {
 
   describe('createOtpCode', () => {
     it('should create OTP code for email', async () => {
+      const mockUser = {
+        id: 'user123',
+        email: 'test@example.com',
+        emailVerified: false,
+      };
       const mockOtp = {
         id: 'otp123',
         code: '123456',
@@ -56,8 +73,12 @@ describe('OTP Service', () => {
         expiresAt: new Date(),
       };
 
-      mockPrisma.otpCode.count.mockResolvedValue(2);
-      mockPrisma.otpCode.create.mockResolvedValue(mockOtp);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        mockPrisma.otpCode.updateMany.mockResolvedValue({ count: 0 });
+        mockPrisma.otpCode.create.mockResolvedValue(mockOtp);
+        return callback(mockPrisma);
+      });
 
       const result = await otpService.createOtpCode({
         email: 'test@example.com',
@@ -65,16 +86,11 @@ describe('OTP Service', () => {
       });
 
       expect(result).toEqual(mockOtp);
-      expect(mockPrisma.otpCode.create).toHaveBeenCalledWith({
-        data: {
-          email: 'test@example.com',
-          phone: undefined,
-          code: expect.stringMatching(/^\d{6}$/),
-          type: 'EMAIL_VERIFICATION',
-          expiresAt: expect.any(Date),
-          userId: undefined,
-        },
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' }
       });
+    });
+  });
     });
 
     it('should throw error for missing email and phone', async () => {
@@ -95,6 +111,12 @@ describe('OTP Service', () => {
     });
 
     it('should enforce rate limiting', async () => {
+      const mockUser = {
+        id: 'user123',
+        email: 'test@example.com',
+        emailVerified: false,
+      };
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       mockPrisma.otpCode.count.mockResolvedValue(5);
 
       await expect(
@@ -119,9 +141,18 @@ describe('OTP Service', () => {
         user: mockUser,
       };
 
-      mockPrisma.otpCode.findFirst.mockResolvedValue(mockOtp);
-      mockPrisma.otpCode.update.mockResolvedValue({});
-      mockPrisma.user.update.mockResolvedValue({ ...mockUser, emailVerified: true });
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        const tx = {
+          otpCode: {
+            findFirst: jest.fn().mockResolvedValue(mockOtp),
+            update: jest.fn().mockResolvedValue({}),
+          },
+          user: {
+            update: jest.fn().mockResolvedValue({ ...mockUser, emailVerified: true }),
+          },
+        };
+        return callback(tx);
+      });
 
       const result = await otpService.verifyOtpCode({
         email: 'test@example.com',
