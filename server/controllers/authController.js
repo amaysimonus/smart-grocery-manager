@@ -13,7 +13,7 @@ const validatePassword = (password) => {
 
 const register = async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, firstName, lastName } = req.body;
 
     // Validate input
     if (!validateEmail(email)) {
@@ -24,8 +24,8 @@ const register = async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
 
-    if (!name || name.trim().length === 0) {
-      return res.status(400).json({ error: 'Name is required' });
+    if (!firstName || firstName.trim().length === 0) {
+      return res.status(400).json({ error: 'First name is required' });
     }
 
     // Check if user already exists
@@ -46,12 +46,14 @@ const register = async (req, res) => {
       data: {
         email: email.toLowerCase(),
         password: hashedPassword,
-        name: name.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName?.trim() || '',
       },
       select: {
         id: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         createdAt: true,
       }
     });
