@@ -2,7 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { body, query } = require('express-validator');
 const AnalyticsController = require('../controllers/analyticsController');
-const { authenticate, roleMiddleware } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 const analyticsController = new AnalyticsController();
@@ -25,11 +25,11 @@ router.use(analyticsLimiter);
 // Role-based access control for analytics endpoints
 // Admin + Family Members (MASTER, ADMIN, FAMILY_MEMBER) can access all endpoints
 // Helpers (HELPER) have limited access to read-only endpoints
-const adminFamilyAccess = roleMiddleware(['MASTER', 'ADMIN', 'FAMILY_MEMBER']);
-const readOnlyAccess = roleMiddleware(['MASTER', 'ADMIN', 'FAMILY_MEMBER', 'HELPER']);
+const adminFamilyAccess = requireRole(['MASTER', 'ADMIN', 'FAMILY_MEMBER']);
+const readOnlyAccess = requireRole(['MASTER', 'ADMIN', 'FAMILY_MEMBER', 'HELPER']);
 
 // Authentication middleware for all routes
-router.use(authenticate);
+router.use(authenticateToken);
 const dateValidation = [
   query('startDate').optional().isISO8601().withMessage('Start date must be a valid ISO 8601 date'),
   query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date'),
