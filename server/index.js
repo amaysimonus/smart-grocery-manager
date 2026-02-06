@@ -12,6 +12,7 @@ const otpRoutes = require('./routes/otp');
 const oauthRoutes = require('./routes/oauth');
 const receiptRoutes = require('./routes/receipt');
 const manualEntryRoutes = require('./routes/manualEntry');
+const budgetRoutes = require('./routes/budget');
 
 // Create Express app
 const app = express();
@@ -39,6 +40,7 @@ app.use('/otp', otpRoutes);
 app.use('/auth', oauthRoutes);
 app.use('/receipts', receiptRoutes);
 app.use('/api/manual-receipts', manualEntryRoutes);
+app.use('/budgets', budgetRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
