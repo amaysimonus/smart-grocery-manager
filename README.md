@@ -1,158 +1,202 @@
-# Receipt Tracking Application
+# Smart Grocery Manager
 
-A full-stack receipt tracking application for family expense management with OCR capabilities, multi-user support, and real-time synchronization.
+A comprehensive full-stack grocery expense management system with OCR receipt scanning, budget tracking, and smart analytics.
 
-## Features
+## 🌟 Features
 
-- **Receipt Capture**: Upload and process receipts with OCR text extraction
-- **User Management**: Multi-user support with role-based permissions
-- **Authentication**: OAuth (Google, Apple) and local authentication
-- **Real-time Sync**: WebSocket-based real-time updates
-- **Notifications**: Email and SMS notifications for shared receipts
-- **Mobile Responsive**: Progressive Web App (PWA) support
-- **Offline Support**: Service worker for offline functionality
-- **Data Export**: Export to CSV/PDF formats
-- **Search & Filter**: Advanced search and filtering capabilities
+### 📊 Analytics Dashboard
+- Interactive charts (Line, Pie, Bar, Area) using Recharts
+- Spending trends with time range filtering (1M, 3M, 6M, 1Y)
+- Category-wise spending breakdown
+- Budget utilization monitoring with alerts
+- Data export capabilities (CSV, PDF, Excel)
 
-## Tech Stack
+### 🧾 Manual Receipt Entry
+- Step-by-step wizard interface optimized for wet markets
+- Support for Chinese market categories (蔬菜, 水果, 肉類, 海鮮)
+- Multiple payment methods (現金, 八達通, 信用卡, 微信支付, 支付寶)
+- Real-time calculation and form validation
+- Dynamic item addition/removal
 
-### Backend
-- **Node.js** with Express.js
-- **PostgreSQL** with Prisma ORM
-- **Redis** for caching and sessions
-- **MinIO** for file storage (S3-compatible)
-- **Socket.io** for real-time communication
-- **Passport.js** for authentication
-- **Tesseract.js** for OCR processing
+### 💰 Budget Management
+- Complete CRUD operations for budgets
+- Real-time progress tracking with visual indicators
+- Status monitoring (Healthy/Warning/Critical/Exceeded)
+- Flexible budget periods (weekly/monthly/yearly)
+- Interactive pie charts for budget distribution
+
+### 🎨 Theme System
+- Light mode optimized for daytime use
+- Dark mode for nighttime with reduced eye strain
+- Auto mode following system preferences
+- Persistent theme settings
+- Smooth transitions and animations
+
+### 🔔 Notification System
+- Budget alerts at configurable thresholds (80%, 95%, exceeded)
+- Weekly spending reports
+- Price drop notifications
+- Email and push notification channels
+- Smart home integration (Google Home, Alexa, HomePod)
+
+## 🏗️ Technical Stack
 
 ### Frontend
-- **React** with TypeScript
-- **Material-UI** for components
-- **React Query** for state management
-- **Vite** for build tool
+- **React 18** with TypeScript
+- **Material-UI v5** for design system
+- **React Router v6** for navigation
+- **Recharts** for data visualization
+- **i18next** for bilingual support (English/Traditional Chinese)
+- **Context API** for state management
+- **Axios** for API communication
 
-### Infrastructure
-- **Docker** & Docker Compose
-- **Nginx** for reverse proxy
-- **GitHub Actions** for CI/CD
+### Backend (Original)
+- **Node.js** with Express
+- **PostgreSQL** database
+- **MinIO** for file storage
+- **Redis** for caching
+- **Tesseract.js** for OCR processing
+- **JWT** authentication with OAuth (Google, Apple)
 
-## Quick Start
+## 🚀 Getting Started
 
 ### Prerequisites
 - Node.js 18+
-- Docker & Docker Compose
-- Git
+- npm or yarn
+- Modern web browser
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd receipt-tracking
-   ```
-
-2. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-3. **Start with Docker**
-   ```bash
-   npm run docker:dev
-   ```
-
-4. **Or start locally**
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-5. **Access the application**
-   - Frontend: http://localhost:3001
-   - Backend API: http://localhost:3000
-   - MinIO Console: http://localhost:9001
-
-## Development
-
-### Scripts
-- `npm run dev` - Start development servers
-- `npm run server:dev` - Start backend only
-- `npm run client:dev` - Start frontend only
-- `npm run build` - Build for production
-- `npm run test` - Run tests
-- `npm run test:watch` - Run tests in watch mode
-- `npm run docker:dev` - Start with Docker
-- `npm run docker:down` - Stop Docker containers
-
-### Database Setup
+1. Clone the repository
 ```bash
-# Generate Prisma client
-npx prisma generate
-
-# Run migrations
-npx prisma migrate dev
-
-# View database
-npx prisma studio
+git clone https://github.com/your-username/smart-grocery-manager.git
+cd smart-grocery-manager
 ```
 
-### Testing
+2. Install dependencies
 ```bash
-# Run all tests
+cd client
+npm install
+```
+
+3. Start the development server
+```bash
+cd client
+npm start
+```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## 📱 Usage
+
+### Adding Receipts
+1. **OCR Upload**: Take a photo or upload receipt image for automatic processing
+2. **Manual Entry**: Use step-by-step wizard for wet market purchases
+3. **Review**: Confirm extracted data and make corrections if needed
+
+### Managing Budgets
+1. Go to Budget section in the navigation
+2. Click "新增預算" to create new budget
+3. Set category, amount, and period
+4. Monitor progress with visual indicators
+
+### Viewing Analytics
+1. Access Analytics from the navigation menu
+2. Use time range selector to filter data
+3. Switch between tabs for different insights
+4. Export data in preferred format
+
+### Customizing Experience
+1. **Theme**: Use header toggle or Settings to switch themes
+2. **Language**: Change between English and Traditional Chinese
+3. **Notifications**: Configure alerts and smart home integration
+4. **Profile**: Update personal information and preferences
+
+## 🎨 Design System
+
+The application uses Material-UI v5 with custom theming:
+- Primary colors optimized for accessibility
+- Responsive breakpoints for mobile/tablet/desktop
+- Custom component styling with consistent patterns
+- Dark/light mode variants for all components
+
+## 🌍 Internationalization
+
+Supports:
+- 🇺🇸 English
+- 🇭🇰 Traditional Chinese (繁體中文)
+
+All UI elements, dates, and currencies are properly localized.
+
+## 🔒 Security Features
+
+- JWT-based authentication with refresh tokens
+- OAuth integration (Google Sign-In, Apple Sign-In)
+- Secure API endpoints with validation
+- Input sanitization and XSS prevention
+- HTTPS enforcement for production
+
+## 📊 Data Privacy
+
+- Local storage for theme and language preferences
+- Secure backend data storage with encryption
+- Optional anonymous usage analytics
+- GDPR compliance for data handling
+
+## 🧪 Testing
+
+```bash
+# Run unit tests
 npm test
 
-# Run tests with coverage
-npm run test -- --coverage
+# Run integration tests
+npm run test:integration
 
-# Run specific test file
-npm test -- auth.test.js
+# Build for production
+npm run build
 ```
 
-## API Documentation
+## 📦 Deployment
 
-### Authentication Endpoints
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `GET /api/auth/google` - Google OAuth
-- `GET /api/auth/apple` - Apple OAuth
-
-### Receipt Endpoints
-- `GET /api/receipts` - List receipts
-- `POST /api/receipts` - Upload receipt
-- `GET /api/receipts/:id` - Get receipt details
-- `PUT /api/receipts/:id` - Update receipt
-- `DELETE /api/receipts/:id` - Delete receipt
-
-### User Endpoints
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update profile
-- `GET /api/users/family` - Get family members
-
-## Deployment
-
-### Docker Production
+### Production Build
 ```bash
-# Build and start production containers
-docker-compose -f docker-compose.prod.yml up -d
+cd client
+npm run build
 ```
+
+The build will be in the `build/` directory, ready for deployment to any static hosting service.
 
 ### Environment Variables
-See `.env.example` for all required environment variables.
+```bash
+REACT_APP_API_URL=http://your-api-domain.com/api/v1
+REACT_APP_ENV=production
+```
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## License
+## 📄 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🙏 Acknowledgments
 
-For support and questions, please open an issue in the repository.
+- Material-UI team for the excellent component library
+- Recharts team for data visualization tools
+- Tesseract.js team for OCR capabilities
+- The React and TypeScript communities
+
+## 📞 Support
+
+For support, please open an issue on GitHub or contact:
+- Email: support@grocery-manager.com
+- Documentation: [https://docs.grocery-manager.com](https://docs.grocery-manager.com)
+
+---
+
+**Built with ❤️ for smarter grocery expense management**
