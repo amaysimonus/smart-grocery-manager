@@ -18,7 +18,6 @@ import {
 } from '@mui/material';
 import {
   Notifications,
-  Smartphone,
   Home,
   Warning,
   CheckCircle,
@@ -330,7 +329,7 @@ const NotificationCenter: React.FC = () => {
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            <SmartHome sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <Home sx={{ mr: 1, verticalAlign: 'middle' }} />
             智能家居整合
           </Typography>
           <Typography variant="body2" color="textSecondary" paragraph>
